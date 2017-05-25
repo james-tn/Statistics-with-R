@@ -1,0 +1,119 @@
+---
+title: "Home Work 10"
+output: pdf_document
+author: "James Nguyen"
+---
+#1.	When adding Mi to Xi we have
+When adding $M_i$ into each $M_i$ -> $Cov(Xi+Mi,Yi) = Cov(X_i, Y_i) + Cov(M_i, Y_i)$
+Because $M_i$  and $Y_i$ are independent -> $Cov(M_i, Y_i) = 0 -> Cov(X_i+M_i,Y_i) = Cov(X_i, Y_i)$.
+
+Since $X_i$ and $M_i$ are independent -> $Var(X_i+M_i) = Var(X_i) + Var(M_i)$ 
+So $\beta_1 = \frac{Cov(X_i, Y_i)}{( Var(X_i) + Var(M_i))}$
+-> adding $M_i$ will decrease $\beta$ slop
+
+#2. National Health Survey 
+
+```{r include=FALSE}
+load("C:/Users/TruongGiang/OneDrive/Work documents/MIDS Berkeley/W203-1/bwght.RData")
+summary(data)
+attach(data)
+
+```
+## 2.1 Let examine the variables cigs and bwght
+
+```{r echo= FALSE}
+print("Summary for cigs variable")
+summary(cigs)
+hist(cigs, main = "Number of cigarettes smoked by the mother each day during pregnacy")
+print("Summary for bwght variable")
+summary(bwght)
+hist(bwght, main ="Infant birth weight in ounces")
+plot(cigs, bwght,main ="Cigarettes and birth weight", xlab ="Number of cigarettes smoked", ylab= "Infant birth weight in ounces", )
+
+
+```
+
+## 2.2 Fit a linear model that predicts bwght as a function of cigs
+
+```{r}
+plot(cigs, bwght,main ="Cigarettes and birth weight", xlab ="Number of cigarettes smoked", ylab= "Infant birth weight in ounces", )
+
+model <-lm(bwght~cigs) 
+abline(model)
+
+```
+
+## 2.3 
+```{r}
+model$coefficients
+
+```
+
+
+This coefficients means that if other factors are kept constant then one additional cigarette smoked by the mother per day will reduce 0.513 ounce of the child birth. This is practically significant.
+
+## 2.4
+
+There're two assumptions have been made
+	1) E(u) = 0
+	2) x and u are independent which means Cov(x,u)=0
+We test these assumptions with following result
+
+```{r}
+sum(model$residuals)
+
+```
+```{r}
+cov(cigs, model$residuals)
+
+```
+
+We see both results are very small, almost zero so the assumptions seem to hold true
+
+## 2.5
+
+```{r}
+summary(model)$r.squared
+
+```
+
+The r square is extremely low. Less than 2.3% of the variability of the weight is explained by the predictor cigarettes smoked. This alone means that the model does not capture a causal relationship between cigarettes and baby weight.
+
+##2.6 
+The scatterplot shows surprisingly concentration of samples with 0, 5, 10, 20, 30, 40 cigarettes in cigs axis in and much less than other points. This may seems to rounding made when people were asked to estimate their cigarette consumption. This measurement error may have impact of the prediction accuracy of the fitted model, meaning the fitted model may therefore further away from the true relationship
+
+##2.7
+```{r}
+beta1= cov(cigs, bwght)/var(cigs)
+beta0 = mean(bwght)-mean(cigs)*beta1
+print("Predicted birthweight when cigs =0")
+print(beta1*0+beta0)
+print("Predicted birthweight when cigs =20")
+print(beta1*20+beta0)
+
+```
+
+
+##2.8
+ 
+ 
+```{r}
+predict(model, data.frame(cigs = c(0, 20) ) )
+
+```
+##2.9
+
+```{r}
+
+model2 <-lm(cigs~bwght) 
+
+predict(model2 , data.frame(bwght = c(100) ) )
+
+beta1= cov(cigs, bwght)/var(bwght)
+beta0 = mean(cigs)-mean(bwght)*beta1
+print(beta1*100+beta0)
+
+```
+
+
+

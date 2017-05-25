@@ -1,0 +1,92 @@
+---
+title: "James_Nguyen_hw12"
+author: "James Nguyen"
+date: "April 8, 2017"
+output: pdf_document
+---
+#Home Work Week 12
+##1 Fit a linear model  predicting the number of views (views), from the length of a video (length) and its average user rating (rate).
+In model building, I removed na data for the relavant variables. 
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+data <- read.table("C:/Users/TruongGiang/OneDrive/Work documents/MIDS Berkeley/W203-1/HW12/videos.txt", header = TRUE, sep="\t")
+
+
+
+```
+```{r}
+videos = data[(!is.na(data$views))&(!is.na(data$ratings))&(!is.na(data$length)),]
+model<- lm((views)~ratings+length, data = videos)
+```
+
+
+
+##2. Testing 6 assumptions of the CLM
+###a. Linear Population Model
+```{r}
+plot( model$fitted.values,model$residuals, xlab = "Residuals", ylab = "Fitted Values", main ="Residual vs. Fitted")
+abline(0,0)
+
+```
+
+From the Residual vs. Fitted, the distribution of points are not well symmetrical. This indicate that the underlying populuation model is not linear.
+###b. Random sampling
+
+We do not have data about the collection process but by looking at the summary of key information bellow, for example the distribution of category is reasonable, there's not too much concentration on one particular uploader, the dstribution of view (log) is pretty normal, I think that the sampling is random
+
+
+```{r}
+summary(videos)
+hist(log(videos$views))
+
+```
+###c. No perfect multicollinearity
+
+```{r}
+library(car)
+vif(model)
+```
+none of the VIF for ratings and length is more than 4.  So we can say there's no perfect multicollinearity effect here.
+
+### d. Zero-conditional mean
+
+```{r}
+mean(model$residuals)
+```
+
+The mean of residual is extremely close to zero so we can say that this assumption holds true for this model.
+### e. Homoskedasticity
+```{r}
+par(mfrow=c(2,2))
+plot(model)
+```
+The top left Residuals vs. Fitted look pretty flat, the Scale-Location except for an outlier value also look quite flat. We can accept that disturbances are homoscedastic and this assumption holds true
+
+### f. Normal distribution of errors
+
+From Normal Q-Q chart, most of the points lie in the line except for the two ends which is expected. We can accept that the residuals are normally distributed
+
+##3 
+
+```{r}
+library(lmtest)
+library(sandwich)
+
+
+coeftest(model, vcov = vcovHC)
+```
+Statistically, both ratings and length are significant in the t test. 
+Pratically, ratings have  strong impact on the number of views with 371 increase in view with a one point increased in rating.
+For length, it seems the impact is insignificant with just 4 view drop when the video length is 1 minute longer. This in addition to std. error of 1.76 we can conclude that it's practiccally insignificant.
+
+
+
+```{r echo=FALSE, include=FALSE}
+
+summary(model)$r.squared
+library(sandwich)
+sqrt(diag(vcovHC(model)))
+coeftest(model, vcov = vcovHC)
+confint(model)
+```

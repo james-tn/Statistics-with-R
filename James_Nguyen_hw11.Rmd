@@ -1,0 +1,157 @@
+---
+title: "Home Work 11"
+author: "James Nguyen"
+date: "March 31, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+load("C:/Users/TruongGiang/OneDrive/Work documents/MIDS Berkeley/W203-1/Week11.RData")
+
+```
+
+## Home Work 11 
+
+### Explore the data
+We have definitions of the fields in the data frames as follows
+```{r}
+Definitions
+```
+
+
+```{r}
+summary(Data)
+attach(Data)
+hist(AG.LND.FRST.ZS)
+hist(MS.MIL.MPRT.KD)
+hist(MS.MIL.XPND.GD.ZS)
+hist(MS.MIL.XPND.ZS)
+hist(MS.MIL.XPRT.KD)
+hist(NE.EXP.GNFS.CD)
+hist(NE.IMP.GNFS.CD)
+hist(NY.GDP.MKTP.CD)
+hist(NY.GDP.PETR.RT.ZS)
+hist(TX.VAL.AGRI.ZS.UN)
+```
+Now let examine the data
+Let also setup the correlation matrix 
+```{r echo=TRUE}
+library(gclus)
+dta <- Data[complete.cases(Data), -(1:2)] # get data 
+dta.r <- abs(cor(dta)) # get correlations
+dta.col <- dmat.color(dta.r) # get colors
+# reorder variables so those with highest correlation
+# are closest to the diagonal
+dta.o <- order.single(dta.r) 
+cpairs(dta, dta.o, panel.colors=dta.col, gap=.5,
+main="Variables Ordered and Colored by Correlation" )
+```
+
+
+```{r}
+apply(!is.na(Data[,-(1:2)] ) , MARGIN= 2, mean )
+
+```
+We can see that the a substantial portions of na values in many of the columns. We need to prepare for cleaning invalid data from the data frame
+
+Now let examine the two variables `NE.IMP.GNFS.CD` and `NE.EXP.GNFS.CD` to understand their relationship
+
+
+```{r}
+temp = Data[complete.cases(Data[,c('NE.IMP.GNFS.CD','NE.EXP.GNFS.CD')]),]
+plot(temp$NE.IMP.GNFS.CD,temp$NE.EXP.GNFS.CD)
+cor(temp$NE.IMP.GNFS.CD,temp$NE.EXP.GNFS.CD)
+
+
+```
+From the plot that show strong positive linear correlation between `NE.IMP.GNFS.CD` and `NE.EXP.GNFS.CD`  as well as extremely high correlation value (close to 1) these two should not be used together in OLS model
+
+Now let rename AG.LND.FRST.ZS to forest 
+
+```{r}
+
+names(dta)[names(dta)=="AG.LND.FRST.ZS"] <-"forest"
+```
+
+
+### Decribe a model for that predicts `forest`
+
+  - Write a model with two explanatory variables. 
+    - Create a residuals versus fitted values plot and assess whether your coefficients are unbiased.
+   
+I build the model with two predictors TX.VAL.AGRI.ZS.UN and MS.MIL.XPND.ZS. I plot residual value vs. fitted value. 
+```{r}
+model = lm(forest~TX.VAL.AGRI.ZS.UN+MS.MIL.XPND.ZS, data =dta)
+plot(fitted(model), model$residuals, ylab ='Residual', xlab ='fitted value')
+abline(0,0)
+
+```
+We can see that the residual distribute evenly above and bellow the 0 residual line. This includes that the model is unbised (E(residual) = 0)
+We have `r nrow(dta)` of observation in data
+
+Now we add a third variable NY.GDP.PETR.RT.ZS to the model.
+```{r}
+model1 = lm(forest~TX.VAL.AGRI.ZS.UN+MS.MIL.XPND.ZS+NY.GDP.PETR.RT.ZS, data =dta)
+
+```
+The 3rd co-efficient by R produced is `r model1$coefficients['NY.GDP.PETR.RT.ZS']`
+Now we use regression anotomy fomular approach
+
+```{r}
+model2 = lm(NY.GDP.PETR.RT.ZS~TX.VAL.AGRI.ZS.UN+MS.MIL.XPND.ZS, data = dta)
+dta1 = data.frame(model2$residuals, dta$forest)
+model3 = lm(dta.forest~model2.residuals, data = dta1)
+
+```
+Using this approach, we have the 3rd coefficient is `r model3$coefficients[2]` which is equal to the above result
+we now compare the first model with 2 predictors and the 2nd model with 3 predictors using R square
+The first model r square is `r summary(model)$r.square` while 2nd model the r square is `r summary(model1)$r.square`. This means that in 2nd model, the predictiors can explain around 2% more variability of the forest variable which is better
+### Make up a country
+
+  - Make up a country named `Mediland` which has every indicator set at the median value observed in the data. 
+
+
+```{r}
+TX.VAL.AGRI.ZS.UN <- mean(dta$TX.VAL.AGRI.ZS.UN)
+
+MS.MIL.XPND.ZS <- mean(dta$MS.MIL.XPND.ZS)
+NY.GDP.PETR.RT.ZS <- mean(dta$NY.GDP.PETR.RT.ZS)
+
+                        
+medilandDta = data.frame(TX.VAL.AGRI.ZS.UN, MS.MIL.XPND.ZS,NY.GDP.PETR.RT.ZS)
+
+```
+now we can predict that the Mediland would have `r predict(model1,medilandDta)` % of forest.
+
+```{r}
+predict(model1,medilandDta)
+
+```
+
+
+
+    
+### Take away
+
+  - What is the causal story, if any, that you can take away from the above analysis? Explain why.
+
+From the above analysis, we see that about 20% of variability in forest (as % of total area) can be explained by 3 variables `TX.VAL.AGRI.ZS.UN+MS.MIL.XPND.ZS+NY.GDP.PETR.RT.ZS`.
+These 3 variables are chosen because they are top 3 in terms of correlation coefficiency with `forest`.
+But by looking at the meaning of each variables, it's questionable that military expenditures can have a causal relationship with foreast area of a country. The raw material export on the other hand can make sense. Let test to see what is the effect of each individual variable when applied individually to the linear model.
+
+```{r}
+model4 = lm(forest~TX.VAL.AGRI.ZS.UN, data =dta)
+summary(model4)$r.squared
+model5 = lm(forest~MS.MIL.XPND.ZS, data =dta)
+summary(model5)$r.squared
+model6 = lm(forest~MS.MIL.XPND.GD.ZS, data =dta)
+summary(model6)$r.squared
+```
+so it seems the test validate my assumptions. TX.VAL.AGRI.ZS.UN (Agricultural raw materials exports) has most of the impact on the predictibility where alone it account for 15% of variability in the outcome.
+The other two variables alone account for 5 and 6% respectively and can very well just be due to chance in the sample data.
+
+
+
+
